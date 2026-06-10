@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AirDoodle // AI-Powered Hand Tracking Canvas & Game</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Background Tech Grid & Decorative Orbs -->
+    <div class="tech-grid"></div>
+    <div class="glow-orb orb-1"></div>
+    <div class="glow-orb orb-2"></div>
+
+    <div class="dashboard-container">
+        <!-- Header Section -->
+        <header class="main-header">
+            <div class="logo-area">
+                <span class="logo-badge">AI GESTURE</span>
+                <h1>AIR<span class="gradient-text">DOODLE</span></h1>
+            </div>
+            <p class="subtitle">Draw in thin air using hand-tracking gestures & play connecting games</p>
+            
+            <div class="connection-status-bar">
+                <div id="status-indicator" class="status-dot disconnected"></div>
+                <span id="status-text">Initializing tracking engine...</span>
+            </div>
+        </header>
+
+        <!-- Main Workspace Grid -->
+        <div class="workspace-grid">
+            <!-- Canvas/Camera Area -->
+            <main class="canvas-viewport">
+                <div class="viewport-wrapper">
+                    <!-- Webcam feed (hidden or mirrored underneath) -->
+                    <video id="webcam" autoplay playsinline muted></video>
+                    
+                    <!-- Separate canvases for high-performance rendering -->
+                    <!-- 1. Permanent drawing canvas -->
+                    <canvas id="drawing-canvas"></canvas>
+                    <!-- 2. Interactive overlay (hand bones, dots, game levels, ripples) -->
+                    <canvas id="ui-canvas"></canvas>
+
+                    <!-- Overlay Notifications/Prompts -->
+                    <div id="gesture-hint" class="glass-panel alert-hint hidden">
+                        <span class="hint-icon">✨</span>
+                        <span id="hint-msg">Detecting hand...</span>
+                    </div>
+
+                    <!-- Level Completed Overlay -->
+                    <div id="victory-screen" class="victory-screen glass-panel hidden">
+                        <h2>LEVEL COMPLETED!</h2>
+                        <p class="victory-sub">Fantastic accuracy. You connected all stars!</p>
+                        <div class="level-stats">
+                            <div class="stat-box">
+                                <span class="label">Time</span>
+                                <span id="victory-time" class="val">0.0s</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="label">Accuracy</span>
+                                <span id="victory-accuracy" class="val">100%</span>
+                            </div>
+                        </div>
+                        <button id="next-level-btn-victory" class="btn btn-primary">NEXT LEVEL</button>
+                    </div>
+
+                    <!-- Loading Screen -->
+                    <div id="loading-overlay" class="loading-overlay">
+                        <div class="loader">
+                            <div class="circle-loader"></div>
+                            <p>Loading Hand Tracker AI Models...</p>
+                            <span class="loader-sub">This may take a moment on first load</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Floating Canvas Toolbar -->
+                <div class="canvas-toolbar glass-panel">
+                    <button id="clear-btn" class="tool-btn" title="Clear Canvas">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                        <span>Clear</span>
+                    </button>
+                    <button id="undo-btn" class="tool-btn" title="Undo Last Stroke">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7v6h6M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></svg>
+                        <span>Undo</span>
+                    </button>
+                    <button id="snapshot-btn" class="tool-btn" title="Download Screenshot">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                        <span>Save</span>
+                    </button>
+                    <div class="tool-divider"></div>
+                    <button id="audio-toggle" class="tool-btn" title="Mute/Unmute Sounds">
+                        <svg id="audio-icon-unmuted" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+                        <span>Sound</span>
+                    </button>
+                </div>
+            </main>
+
+            <!-- Sidebar Controls -->
+            <aside class="control-sidebar">
+                <!-- Mode Panel -->
+                <section class="control-section glass-panel">
+                    <h3>SELECT GAME MODE</h3>
+                    <div class="mode-buttons-grid">
+                        <button id="mode-doodle" class="mode-card active">
+                            <div class="icon">🎨</div>
+                            <div class="details">
+                                <span class="title">Air Doodle</span>
+                                <span class="desc">Free-hand drawing</span>
+                            </div>
+                        </button>
+                        <button id="mode-connect" class="mode-card">
+                            <div class="icon">🧩</div>
+                            <div class="details">
+                                <span class="title">Hand Connect</span>
+                                <span class="desc">Link the stars</span>
+                            </div>
+                        </button>
+                        <button id="mode-constellation" class="mode-card">
+                            <div class="icon">⚡</div>
+                            <div class="details">
+                                <span class="title">Constellation</span>
+                                <span class="desc">Double hand VFX</span>
+                            </div>
+                        </button>
+                    </div>
+                </section>
+
+                <!-- Configuration Parameters Panel -->
+                <section class="control-section glass-panel" id="config-panel">
+                    <h3>BRUSH SETTINGS</h3>
+                    
+                    <!-- Brush Color -->
+                    <div class="config-group">
+                        <label>Brush Theme</label>
+                        <div class="color-palette">
+                            <button class="color-swatch active" style="--swatch-color: #00f0ff;" data-color="#00f0ff"></button>
+                            <button class="color-swatch" style="--swatch-color: #ff007f;" data-color="#ff007f"></button>
+                            <button class="color-swatch" style="--swatch-color: #39ff14;" data-color="#39ff14"></button>
+                            <button class="color-swatch" style="--swatch-color: #ffaa00;" data-color="#ffaa00"></button>
+                            <button class="color-swatch" style="--swatch-color: #ffffff;" data-color="#ffffff"></button>
+                            <button class="color-swatch rainbow-swatch" data-color="rainbow" title="Rainbow Brush"></button>
+                        </div>
+                    </div>
+
+                    <!-- Brush Size -->
+                    <div class="config-group">
+                        <div class="slider-header">
+                            <label for="brush-size">Brush Size</label>
+                            <span id="brush-size-val">8px</span>
+                        </div>
+                        <input type="range" id="brush-size" min="2" max="30" value="8">
+                    </div>
+
+                    <!-- Brush Style Mode -->
+                    <div class="config-group">
+                        <label>Brush Type</label>
+                        <div class="segmented-control">
+                            <button class="segment active" data-style="normal">Normal</button>
+                            <button class="segment" data-style="glow">Glow</button>
+                            <button class="segment" data-style="ghost">Ghost (Fade)</button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Game Level Controls Panel (Conditional UI) -->
+                <section class="control-section glass-panel hidden" id="game-panel">
+                    <h3>LEVEL SELECTION</h3>
+                    <div class="config-group">
+                        <select id="level-select" class="dropdown-control">
+                            <!-- Populated by JS -->
+                        </select>
+                    </div>
+                    
+                    <div class="game-stats-panel">
+                        <div class="game-stat">
+                            <span class="lbl">TARGET</span>
+                            <span id="game-target" class="val">---</span>
+                        </div>
+                        <div class="game-stat">
+                            <span class="lbl">CONNECTED</span>
+                            <span id="game-score" class="val">0 / 0</span>
+                        </div>
+                        <div class="game-stat">
+                            <span class="lbl">TIMER</span>
+                            <span id="game-timer" class="val">0.0s</span>
+                        </div>
+                    </div>
+
+                    <button id="reset-level-btn" class="btn btn-secondary w-full">Restart Level</button>
+                </section>
+
+                <!-- Interactive Tutorial/How-To Panel -->
+                <section class="control-section glass-panel">
+                    <h3>AIR GESTURES GUIDE</h3>
+                    <div class="gesture-guide-list">
+                        <div class="guide-item">
+                            <div class="gesture-icon">🤏</div>
+                            <div class="guide-desc">
+                                <strong>Pinch Fingers (Index + Thumb)</strong>
+                                <span>Draw on canvas / connect dots</span>
+                            </div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="gesture-icon">✋</div>
+                            <div class="guide-desc">
+                                <strong>Open Palm (Five Fingers)</strong>
+                                <span>Hover index finger without drawing</span>
+                            </div>
+                        </div>
+                        <div class="guide-item">
+                            <div class="gesture-icon">✊</div>
+                            <div class="guide-desc">
+                                <strong>Closed Fist</strong>
+                                <span>Erase paths (hold fist near canvas)</span>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Main scripts initialization as type="module" -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
